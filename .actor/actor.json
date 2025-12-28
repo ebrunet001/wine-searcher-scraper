@@ -1,0 +1,52 @@
+{
+    "actorSpecification": 1,
+    "name": "wine-searcher-scraper",
+    "title": "Wine Searcher Domain Scraper",
+    "description": "Scrapes wine data from wine-searcher.com merchant/domain pages including name, appellation, rating, style, search rank and average price",
+    "version": "1.0",
+    "buildTag": "latest",
+    "meta": {
+        "templateId": "python-playwright"
+    },
+    "input": "./input_schema.json",
+    "dockerfile": "./Dockerfile",
+    "storages": {
+        "dataset": {
+            "actorSpecification": 1,
+            "title": "Wine data",
+            "views": {
+                "wines": {
+                    "title": "Wines",
+                    "transformation": {
+                        "fields": [
+                            "name",
+                            "appellation",
+                            "rating",
+                            "style",
+                            "search_rank",
+                            "avg_price",
+                            "url"
+                        ]
+                    },
+                    "display": {
+                        "component": "table",
+                        "properties": {
+                            "name": {
+                                "label": "Wine Name",
+                                "format": "text"
+                            },
+                            "rating": {
+                                "label": "Rating /100",
+                                "format": "number"
+                            },
+                            "avg_price": {
+                                "label": "Avg Price",
+                                "format": "text"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

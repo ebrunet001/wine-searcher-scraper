@@ -1,0 +1,28 @@
+{
+    "title": "Wine Searcher Domain Scraper Input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "domain_url": {
+            "title": "Domain/Merchant URL",
+            "type": "string",
+            "description": "URL of the wine domain/merchant page (e.g., https://www.wine-searcher.com/merchant/22643-domaine-de-la-romanee-conti)",
+            "editor": "textfield",
+            "prefill": "https://www.wine-searcher.com/merchant/22643-domaine-de-la-romanee-conti"
+        },
+        "max_wines": {
+            "title": "Maximum wines to scrape",
+            "type": "integer",
+            "description": "Maximum number of wines to scrape (0 for all)",
+            "default": 0,
+            "minimum": 0
+        },
+        "include_analytics": {
+            "title": "Include Analytics (Search Rank)",
+            "type": "boolean",
+            "description": "Fetch search rank from analytics tab (slower but more data)",
+            "default": true
+        }
+    },
+    "required": ["domain_url"]
+}
