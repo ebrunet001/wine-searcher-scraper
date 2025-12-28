@@ -22,6 +22,12 @@
             "type": "boolean",
             "description": "Fetch search rank from analytics tab (slower but more data)",
             "default": true
+        },
+        "use_proxy": {
+            "title": "Use Residential Proxy",
+            "type": "boolean",
+            "description": "Use Apify residential proxy to bypass anti-bot protection (recommended)",
+            "default": true
         }
     },
     "required": ["domain_url"]

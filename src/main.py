@@ -9,16 +9,40 @@ import asyncio
 import re
 from urllib.parse import urljoin
 
-from apify import Actor
+from apify import Actor, ProxyConfiguration
 from playwright.async_api import async_playwright, Page, TimeoutError as PlaywrightTimeout
+
+
+async def wait_for_page_ready(page: Page, timeout: int = 30000) -> bool:
+    """Wait for page to be ready, handling various loading states."""
+    try:
+        # First wait for DOM content
+        await page.wait_for_load_state("domcontentloaded", timeout=timeout)
+
+        # Then wait a bit for JS to execute
+        await asyncio.sleep(3)
+
+        # Check if we hit a challenge page
+        content = await page.content()
+        if "challenge" in content.lower() or "checking your browser" in content.lower():
+            Actor.log.info("Detected browser check, waiting for completion...")
+            await asyncio.sleep(10)
+            # Try to wait for the challenge to complete
+            try:
+                await page.wait_for_selector('body:not(:has-text("Checking your browser"))', timeout=30000)
+            except Exception:
+                pass
+
+        return True
+    except Exception as e:
+        Actor.log.warning(f"Error waiting for page: {e}")
+        return False
 
 
 async def extract_wine_links(page: Page) -> list[str]:
     """Extract all wine links from a merchant/domain page."""
     wine_links = []
 
-    # Wait for the wine list to load
-    await page.wait_for_load_state("networkidle", timeout=30000)
     await asyncio.sleep(2)  # Additional wait for dynamic content
 
     # Find all wine links - they typically link to /find/ pages
@@ -38,8 +62,8 @@ async def extract_wine_links(page: Page) -> list[str]:
 async def extract_wine_data(page: Page, url: str, include_analytics: bool) -> dict | None:
     """Extract wine data from a wine detail page."""
     try:
-        await page.goto(url, wait_until="networkidle", timeout=60000)
-        await asyncio.sleep(2)
+        await page.goto(url, wait_until="domcontentloaded", timeout=90000)
+        await wait_for_page_ready(page)
 
         wine_data = {
             "url": url,
@@ -240,6 +264,7 @@ async def main() -> None:
         domain_url = actor_input.get("domain_url", "")
         max_wines = actor_input.get("max_wines", 0)
         include_analytics = actor_input.get("include_analytics", True)
+        use_proxy = actor_input.get("use_proxy", True)
 
         if not domain_url:
             Actor.log.error("No domain_url provided in input")
@@ -248,6 +273,21 @@ async def main() -> None:
         Actor.log.info(f"Starting scraper for: {domain_url}")
         Actor.log.info(f"Max wines: {max_wines if max_wines > 0 else 'unlimited'}")
         Actor.log.info(f"Include analytics: {include_analytics}")
+        Actor.log.info(f"Use proxy: {use_proxy}")
+
+        # Configure proxy
+        proxy_config = None
+        if use_proxy:
+            try:
+                proxy_configuration = await Actor.create_proxy_configuration(
+                    groups=["RESIDENTIAL"],
+                    country_code="US",
+                )
+                proxy_url = await proxy_configuration.new_url()
+                Actor.log.info(f"Using proxy: {proxy_url[:50]}...")
+                proxy_config = {"server": proxy_url}
+            except Exception as e:
+                Actor.log.warning(f"Could not configure proxy: {e}. Proceeding without proxy.")
 
         async with async_playwright() as p:
             # Launch browser with stealth settings
@@ -257,37 +297,121 @@ async def main() -> None:
                     "--disable-blink-features=AutomationControlled",
                     "--disable-dev-shm-usage",
                     "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-infobars",
+                    "--window-position=0,0",
+                    "--ignore-certifcate-errors",
+                    "--ignore-certifcate-errors-spki-list",
                 ]
             )
 
-            context = await browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                locale="en-US",
-            )
+            context_options = {
+                "viewport": {"width": 1920, "height": 1080},
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                "locale": "en-US",
+                "timezone_id": "America/New_York",
+                "permissions": ["geolocation"],
+                "geolocation": {"latitude": 40.7128, "longitude": -74.0060},
+            }
 
-            # Add stealth scripts
+            if proxy_config:
+                context_options["proxy"] = proxy_config
+
+            context = await browser.new_context(**context_options)
+
+            # Add comprehensive stealth scripts
             await context.add_init_script("""
-                Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+                // Overwrite the webdriver property
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                });
+
+                // Overwrite plugins
+                Object.defineProperty(navigator, 'plugins', {
+                    get: () => [1, 2, 3, 4, 5]
+                });
+
+                // Overwrite languages
+                Object.defineProperty(navigator, 'languages', {
+                    get: () => ['en-US', 'en']
+                });
+
+                // Remove automation indicators
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+                delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+
+                // Mock chrome object
+                window.chrome = {
+                    runtime: {},
+                    loadTimes: function() {},
+                    csi: function() {},
+                    app: {}
+                };
+
+                // Override permissions
+                const originalQuery = window.navigator.permissions.query;
+                window.navigator.permissions.query = (parameters) => (
+                    parameters.name === 'notifications' ?
+                        Promise.resolve({ state: Notification.permission }) :
+                        originalQuery(parameters)
+                );
             """)
 
             page = await context.new_page()
 
-            try:
-                # Navigate to domain page
-                Actor.log.info("Loading domain page...")
-                await page.goto(domain_url, wait_until="networkidle", timeout=60000)
+            # Set extra headers
+            await page.set_extra_http_headers({
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "Cache-Control": "max-age=0",
+            })
 
-                # Check for Cloudflare or other challenges
-                page_content = await page.content()
-                if "challenge" in page_content.lower() or "captcha" in page_content.lower():
-                    Actor.log.warning("Detected anti-bot challenge, waiting...")
-                    await asyncio.sleep(10)
-                    await page.reload(wait_until="networkidle")
+            try:
+                # Navigate to domain page with retry
+                Actor.log.info("Loading domain page...")
+
+                for attempt in range(3):
+                    try:
+                        await page.goto(domain_url, wait_until="domcontentloaded", timeout=90000)
+                        if await wait_for_page_ready(page):
+                            break
+                    except PlaywrightTimeout:
+                        if attempt < 2:
+                            Actor.log.warning(f"Timeout on attempt {attempt + 1}, retrying...")
+                            await asyncio.sleep(5)
+                        else:
+                            raise
+
+                # Log page title for debugging
+                title = await page.title()
+                Actor.log.info(f"Page title: {title}")
+
+                # Take screenshot for debugging
+                await page.screenshot(path="/tmp/debug_screenshot.png")
+                Actor.log.info("Debug screenshot saved")
 
                 # Extract wine links
                 wine_links = await extract_wine_links(page)
+
+                if not wine_links:
+                    # Try alternative selectors
+                    Actor.log.info("No /find/ links found, trying alternative selectors...")
+
+                    # Try getting all links and filtering
+                    all_links = await page.query_selector_all('a[href]')
+                    for link in all_links:
+                        href = await link.get_attribute("href")
+                        text = await link.inner_text()
+                        if href and ("wine" in href.lower() or "find" in href.lower()):
+                            Actor.log.debug(f"Found link: {href} - {text[:50] if text else 'no text'}")
 
                 if max_wines > 0:
                     wine_links = wine_links[:max_wines]
@@ -306,11 +430,17 @@ async def main() -> None:
                     else:
                         Actor.log.warning(f"Could not extract data from {wine_url}")
 
-                    # Small delay between requests
-                    await asyncio.sleep(2)
+                    # Random delay between requests
+                    await asyncio.sleep(3 + (i % 3))
 
             except Exception as e:
                 Actor.log.error(f"Error during scraping: {e}")
+                # Save screenshot on error
+                try:
+                    await page.screenshot(path="/tmp/error_screenshot.png")
+                    Actor.log.info("Error screenshot saved")
+                except Exception:
+                    pass
                 raise
             finally:
                 await browser.close()
