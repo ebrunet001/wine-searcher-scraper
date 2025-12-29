@@ -279,8 +279,9 @@ async def main() -> None:
         proxy_config = None
         if use_proxy:
             try:
+                # Use SHADER proxy group - optimized for anti-bot bypass
                 proxy_configuration = await Actor.create_proxy_configuration(
-                    groups=["RESIDENTIAL"],
+                    groups=["SHADER"],
                     country_code="US",
                 )
                 proxy_url = await proxy_configuration.new_url()
@@ -307,7 +308,7 @@ async def main() -> None:
 
             context_options = {
                 "viewport": {"width": 1920, "height": 1080},
-                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                 "locale": "en-US",
                 "timezone_id": "America/New_York",
                 "permissions": ["geolocation"],
