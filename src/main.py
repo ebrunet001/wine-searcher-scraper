@@ -264,7 +264,7 @@ async def main() -> None:
         domain_url = actor_input.get("domain_url", "")
         max_wines = actor_input.get("max_wines", 0)
         include_analytics = actor_input.get("include_analytics", True)
-        use_proxy = actor_input.get("use_proxy", True)
+        use_proxy = actor_input.get("use_proxy", False)  # Disabled by default for testing
 
         if not domain_url:
             Actor.log.error("No domain_url provided in input")
