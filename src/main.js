@@ -62,9 +62,9 @@ if (urls.length === 0) {
     });
 }
 
-// Camoufox-style launch options for stealth
+// Launch options for stealth - HEADFUL mode (less detected)
 const stealthLaunchOptions = {
-    headless: true,
+    headless: false,  // Headful mode - less detected by anti-bot
     args: [
         '--disable-blink-features=AutomationControlled',
     ],
@@ -75,6 +75,8 @@ const stealthLaunchOptions = {
         'network.http.referer.XOriginPolicy': 0,
     },
 };
+
+log.info('Using HEADFUL mode (non-headless) for better anti-detection');
 
 const crawler = new PlaywrightCrawler({
     proxyConfiguration,
@@ -118,6 +120,10 @@ const crawler = new PlaywrightCrawler({
     // Pre-navigation hook for stealth
     preNavigationHooks: [
         async ({ page, request }, gotoOptions) => {
+            // Warm-up delay - let browser fully initialize
+            log.debug('Warming up browser before navigation...');
+            await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
+
             // Set realistic viewport
             await page.setViewportSize({
                 width: 1920,
