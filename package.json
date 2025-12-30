@@ -1,0 +1,22 @@
+{
+    "name": "wine-searcher-scraper",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Apify Actor for scraping wine data from Wine-Searcher using Crawlee + Camoufox",
+    "main": "src/main.js",
+    "scripts": {
+        "start": "node src/main.js",
+        "test": "echo \"No tests yet\""
+    },
+    "author": "ebrunet001",
+    "license": "MIT",
+    "dependencies": {
+        "@crawlee/playwright": "^3.11.0",
+        "apify": "^3.2.0",
+        "camoufox": "^0.4.0",
+        "playwright": "^1.40.0"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

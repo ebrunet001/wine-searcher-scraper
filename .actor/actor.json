@@ -1,12 +1,12 @@
 {
     "actorSpecification": 1,
     "name": "wine-searcher-scraper",
-    "title": "Wine Searcher Domain Scraper",
-    "description": "Scrapes wine data from wine-searcher.com merchant/domain pages including name, appellation, rating, style, search rank and average price",
-    "version": "1.0",
+    "title": "Wine Searcher Scraper",
+    "description": "Scrapes wine data from wine-searcher.com using Crawlee + Firefox with anti-bot bypass techniques. Extracts wine names, prices, ratings, regions, and merchant information.",
+    "version": "2.0",
     "buildTag": "latest",
     "meta": {
-        "templateId": "python-playwright"
+        "templateId": "js-crawlee-playwright-firefox"
     },
     "input": "./input_schema.json",
     "dockerfile": "./Dockerfile",
@@ -19,29 +19,44 @@
                     "title": "Wines",
                     "transformation": {
                         "fields": [
-                            "name",
-                            "appellation",
+                            "wineName",
+                            "producer",
+                            "region",
+                            "vintage",
+                            "price",
+                            "currency",
                             "rating",
-                            "style",
-                            "search_rank",
-                            "avg_price",
-                            "url"
+                            "merchantCount",
+                            "url",
+                            "scrapedAt"
                         ]
                     },
                     "display": {
                         "component": "table",
                         "properties": {
-                            "name": {
+                            "wineName": {
                                 "label": "Wine Name",
                                 "format": "text"
                             },
-                            "rating": {
-                                "label": "Rating /100",
+                            "producer": {
+                                "label": "Producer",
+                                "format": "text"
+                            },
+                            "region": {
+                                "label": "Region",
+                                "format": "text"
+                            },
+                            "vintage": {
+                                "label": "Vintage",
+                                "format": "text"
+                            },
+                            "price": {
+                                "label": "Price",
                                 "format": "number"
                             },
-                            "avg_price": {
-                                "label": "Avg Price",
-                                "format": "text"
+                            "rating": {
+                                "label": "Rating",
+                                "format": "number"
                             }
                         }
                     }

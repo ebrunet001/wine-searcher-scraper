@@ -1,8 +1,30 @@
-.venv/
-__pycache__/
-*.pyc
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Storage
+storage/
+apify_storage/
+
+# Environment
+.env
+.env.local
+
+# IDE
 .idea/
 .vscode/
-storage/
-.env
-apify_storage/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Package lock (optional - can be committed)
+# package-lock.json

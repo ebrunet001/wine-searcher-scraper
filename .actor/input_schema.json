@@ -1,34 +1,58 @@
 {
-    "title": "Wine Searcher Domain Scraper Input",
+    "title": "Wine Searcher Scraper Input",
     "type": "object",
     "schemaVersion": 1,
     "properties": {
-        "domain_url": {
-            "title": "Domain/Merchant URL",
-            "type": "string",
-            "description": "URL of the wine domain/merchant page (e.g., https://www.wine-searcher.com/merchant/22643-domaine-de-la-romanee-conti)",
-            "editor": "textfield",
-            "prefill": "https://www.wine-searcher.com/merchant/22643-domaine-de-la-romanee-conti"
+        "searchQueries": {
+            "title": "Wine Search Queries",
+            "type": "array",
+            "description": "List of wine names to search for (e.g., 'Chateau Margaux', 'Opus One')",
+            "editor": "stringList",
+            "prefill": ["Chateau Margaux", "Domaine de la Romanee-Conti"]
         },
-        "max_wines": {
-            "title": "Maximum wines to scrape",
+        "startUrls": {
+            "title": "Start URLs",
+            "type": "array",
+            "description": "Specific Wine-Searcher URLs to scrape (optional, alternative to search queries)",
+            "editor": "requestListSources"
+        },
+        "vintage": {
+            "title": "Vintage",
+            "type": "string",
+            "description": "Specific vintage year (e.g., '2015') or '-' for all vintages",
+            "editor": "textfield",
+            "default": "-"
+        },
+        "country": {
+            "title": "Country",
+            "type": "string",
+            "description": "Country code for prices (us, uk, fr, de, etc.)",
+            "editor": "textfield",
+            "default": "us",
+            "enum": ["us", "uk", "fr", "de", "it", "es", "au", "ch"]
+        },
+        "currency": {
+            "title": "Currency",
+            "type": "string",
+            "description": "Currency for prices",
+            "editor": "select",
+            "default": "usd",
+            "enum": ["usd", "eur", "gbp", "chf", "aud"]
+        },
+        "maxResults": {
+            "title": "Maximum Results",
             "type": "integer",
-            "description": "Maximum number of wines to scrape (0 for all)",
-            "default": 0,
+            "description": "Maximum number of wines to scrape per search query (0 for unlimited)",
+            "default": 50,
             "minimum": 0
         },
-        "include_analytics": {
-            "title": "Include Analytics (Search Rank)",
-            "type": "boolean",
-            "description": "Fetch search rank from analytics tab (slower but more data)",
-            "default": true
-        },
-        "use_proxy": {
-            "title": "Use Residential Proxy",
-            "type": "boolean",
-            "description": "Use Apify residential proxy to bypass anti-bot protection (recommended)",
-            "default": true
+        "maxConcurrency": {
+            "title": "Max Concurrency",
+            "type": "integer",
+            "description": "Number of parallel browsers (lower = more stealthy, recommended: 3-5)",
+            "default": 3,
+            "minimum": 1,
+            "maximum": 10
         }
-    },
-    "required": ["domain_url"]
+    }
 }
