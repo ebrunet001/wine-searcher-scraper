@@ -27,7 +27,7 @@
             "title": "Country",
             "type": "string",
             "description": "Country code for prices (us, uk, fr, de, etc.)",
-            "editor": "textfield",
+            "editor": "select",
             "default": "us",
             "enum": ["us", "uk", "fr", "de", "it", "es", "au", "ch"]
         },
